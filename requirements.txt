@@ -1,5 +1,6 @@
 mistralai 
-python-dotenv 
-sounddevice 
-scipy 
-numpy
+cartesia
+python-dotenv
+fastapi 
+uvicorn 
+python-multipart

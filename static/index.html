@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Bridge: Hindi & Indonesian Translator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for visual elements -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .pulse-text { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .recording-pulse { animation: rec-pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        @keyframes rec-pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="mic-2" class="text-indigo-600 w-8 h-8"></i>
+                <h1 class="text-2xl font-bold text-slate-900">Voice Bridge</h1>
+            </div>
+            <button onclick="toggleReadMe()" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-1 text-sm sm:text-base">
+                <i data-lucide="help-circle" class="w-5 h-5"></i>
+                <span>How to use</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- ReadMe Section (Hidden by default) -->
+        <div id="readmeSection" class="hidden bg-indigo-50 rounded-xl p-6 mb-8 border border-indigo-100 shadow-sm transition-all">
+            <h2 class="text-xl font-bold text-indigo-900 mb-4 flex items-center">
+                <i data-lucide="book-open" class="w-6 h-6 mr-2"></i> User Guide
+            </h2>
+            <div class="space-y-4 text-indigo-800 text-sm sm:text-base">
+                <p><strong>Welcome to Voice Bridge!</strong> This tool helps you seamlessly translate spoken audio between Hindi and Indonesian.</p>
+                <ol class="list-decimal list-inside space-y-2 ml-2">
+                    <li><strong>Record your audio:</strong> Click the large microphone button to start recording your voice.</li>
+                    <li><strong>Stop & Translate:</strong> Click the button again to stop. The app will immediately start translating your audio.</li>
+                    <li><strong>Wait a moment:</strong> Our system will listen to the audio, translate the words, and generate a new voice speaking the translation.</li>
+                    <li><strong>Review the results:</strong> You'll be able to listen to the new audio, read what was spoken, and see how fast the tool worked in the Dashboard below.</li>
+                </ol>
+                <button onclick="toggleReadMe()" class="mt-4 bg-indigo-200 hover:bg-indigo-300 text-indigo-800 px-4 py-2 rounded-lg font-medium transition-colors">
+                    Got it, hide this guide
+                </button>
+            </div>
+        </div>
+
+        <!-- Main App Interface -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Input & Actions -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 text-center">
+                    <h2 class="text-lg font-semibold mb-6 text-slate-800 text-left">1. Record Audio</h2>
+                    
+                    <!-- Recording Area -->
+                    <div class="flex flex-col items-center justify-center py-8 border border-slate-100 rounded-2xl bg-slate-50">
+                        <button id="recordBtn" class="w-32 h-32 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-600 flex flex-col items-center justify-center transition-all duration-300 shadow-sm border-4 border-white mb-4 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i id="recordIcon" data-lucide="mic" class="w-12 h-12 mb-2"></i>
+                            <span id="recordText" class="font-semibold text-sm">Record</span>
+                        </button>
+                        <p id="recordStatus" class="text-sm font-medium text-slate-500">Click to start recording</p>
+                    </div>
+
+                    <!-- Error Message Area -->
+                    <div id="errorArea" class="hidden mt-4 p-4 rounded-xl text-sm flex items-start space-x-2 text-left">
+                        <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                        <span id="errorText">Something went wrong.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Output & Dashboard -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center min-h-[400px]">
+                    <div class="relative w-20 h-20 mb-6">
+                        <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                        <div class="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                        <i data-lucide="languages" class="absolute inset-0 m-auto w-8 h-8 text-indigo-600"></i>
+                    </div>
+                    <h3 id="loadingText" class="text-xl font-semibold text-slate-800 pulse-text">Listening to audio...</h3>
+                    <p class="text-slate-500 mt-2 text-center max-w-sm">This process takes a few moments as we understand, translate, and generate a new voice.</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center min-h-[400px]">
+                    <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="waveform" class="w-12 h-12 text-slate-300"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-slate-600">Your results will appear here</h3>
+                    <p class="text-sm text-slate-400 mt-1">Record an audio clip to get started.</p>
+                </div>
+
+                <!-- Results State -->
+                <div id="resultsState" class="hidden space-y-6">
+                    
+                    <!-- Audio Player Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h2 class="text-lg font-semibold mb-4 text-slate-800 flex items-center">
+                            <i data-lucide="volume-2" class="w-5 h-5 mr-2 text-indigo-600"></i> Translated Audio
+                        </h2>
+                        <audio id="audioPlayer" controls autoplay class="w-full rounded-lg bg-slate-50"></audio>
+                    </div>
+
+                    <!-- Transcripts Card -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">What we heard</h3>
+                            <p id="transcribedText" class="text-slate-800 text-lg leading-relaxed"></p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 border-l-4 border-l-indigo-500">
+                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Translation</h3>
+                            <p id="translatedText" class="text-indigo-900 text-lg leading-relaxed font-medium"></p>
+                        </div>
+                    </div>
+
+                    <!-- Performance Dashboard -->
+                    <div class="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6 text-white">
+                        <h2 class="text-lg font-semibold mb-6 flex items-center text-slate-100">
+                            <i data-lucide="activity" class="w-5 h-5 mr-2 text-indigo-400"></i> Status Summary
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Metric 1 -->
+                            <div class="bg-slate-800 rounded-xl p-4">
+                                <div class="flex items-center text-slate-400 mb-2">
+                                    <i data-lucide="ear" class="w-4 h-4 mr-1"></i>
+                                    <span class="text-xs font-medium uppercase">Time to Understand</span>
+                                </div>
+                                <div class="flex items-baseline space-x-1">
+                                    <span id="sttMetric" class="text-2xl font-bold text-white">0.0</span>
+                                    <span class="text-sm text-slate-400">seconds</span>
+                                </div>
+                            </div>
+                            <!-- Metric 2 -->
+                            <div class="bg-slate-800 rounded-xl p-4">
+                                <div class="flex items-center text-slate-400 mb-2">
+                                    <i data-lucide="arrow-right-left" class="w-4 h-4 mr-1"></i>
+                                    <span class="text-xs font-medium uppercase">Time to Translate</span>
+                                </div>
+                                <div class="flex items-baseline space-x-1">
+                                    <span id="transMetric" class="text-2xl font-bold text-white">0.0</span>
+                                    <span class="text-sm text-slate-400">seconds</span>
+                                </div>
+                            </div>
+                            <!-- Metric 3 -->
+                            <div class="bg-slate-800 rounded-xl p-4">
+                                <div class="flex items-center text-slate-400 mb-2">
+                                    <i data-lucide="mic" class="w-4 h-4 mr-1"></i>
+                                    <span class="text-xs font-medium uppercase">Time to Speak</span>
+                                </div>
+                                <div class="flex items-baseline space-x-1">
+                                    <span id="ttsMetric" class="text-2xl font-bold text-white">0.0</span>
+                                    <span class="text-sm text-slate-400">seconds</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-50 border-t border-slate-200 py-6 mt-auto">
+        <div class="max-w-5xl mx-auto px-4 text-center text-slate-500 text-sm">
+            Powered by FastAPI, Mistral AI, and Cartesia
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // --- Configuration ---
+        const BACKEND_URL = 'http://localhost:8000/translate-audio'; 
+
+        // --- DOM Elements ---
+        const recordBtn = document.getElementById('recordBtn');
+        const recordStatus = document.getElementById('recordStatus');
+        
+        const emptyState = document.getElementById('emptyState');
+        const loadingState = document.getElementById('loadingState');
+        const resultsState = document.getElementById('resultsState');
+        const errorArea = document.getElementById('errorArea');
+        const errorText = document.getElementById('errorText');
+        
+        const loadingText = document.getElementById('loadingText');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const transcribedTextEl = document.getElementById('transcribedText');
+        const translatedTextEl = document.getElementById('translatedText');
+        
+        const sttMetric = document.getElementById('sttMetric');
+        const transMetric = document.getElementById('transMetric');
+        const ttsMetric = document.getElementById('ttsMetric');
+
+        let loadingInterval;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        // --- UI Interactions ---
+
+        function toggleReadMe() {
+            const readme = document.getElementById('readmeSection');
+            readme.classList.toggle('hidden');
+        }
+
+        // Dynamic Loading Text to keep user engaged
+        function startLoadingAnimation() {
+            const phrases = [
+                "Listening to audio...",
+                "Analyzing speech...",
+                "Translating words...",
+                "Generating new voice...",
+                "Almost ready..."
+            ];
+            let i = 0;
+            loadingText.textContent = phrases[0];
+            loadingInterval = setInterval(() => {
+                i = (i + 1) % phrases.length;
+                loadingText.textContent = phrases[i];
+            }, 3000); 
+        }
+
+        function stopLoadingAnimation() {
+            clearInterval(loadingInterval);
+        }
+
+        function showError(message, isWarning = false) {
+            errorText.innerHTML = message;
+            errorArea.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700', 'bg-amber-50', 'border-amber-200', 'text-amber-800');
+            
+            if (isWarning) {
+                errorArea.classList.add('bg-amber-50', 'border-amber-200', 'text-amber-800');
+            } else {
+                errorArea.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
+            }
+        }
+
+        function hideError() {
+            errorArea.classList.add('hidden');
+        }
+
+        // --- Audio Recording Logic ---
+        
+        recordBtn.addEventListener('click', toggleRecording);
+
+        async function toggleRecording() {
+            hideError();
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        // Package audio into a file-like Blob
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        // Create a synthetic File object to mimic an upload for FastAPI
+                        const audioFile = new File([audioBlob], "recording.webm", { type: 'audio/webm' });
+                        
+                        // Stop all tracks to release the microphone
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        // Sequentially run the processing function
+                        processAudio(audioFile);
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    
+                    // Update UI to "Recording" state
+                    recordBtn.classList.replace('bg-indigo-100', 'bg-red-100');
+                    recordBtn.classList.replace('text-indigo-600', 'text-red-600');
+                    recordBtn.classList.replace('hover:bg-indigo-200', 'hover:bg-red-200');
+                    recordBtn.classList.add('recording-pulse');
+                    recordBtn.innerHTML = '<i data-lucide="square" class="w-10 h-10 mb-2 fill-current"></i><span class="font-semibold text-sm">Stop</span>';
+                    recordStatus.textContent = "Recording... Click to stop & translate";
+                    recordStatus.classList.replace('text-slate-500', 'text-red-500');
+                    recordStatus.classList.add('animate-pulse');
+                    lucide.createIcons();
+
+                } catch (err) {
+                    console.error("Microphone Access Error:", err);
+                    showError("Microphone access is required to use this feature. Please allow permissions in your browser.");
+                }
+            } else {
+                // This triggers mediaRecorder.onstop
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                // Update UI back to normal but disabled during processing
+                recordBtn.classList.replace('bg-red-100', 'bg-slate-100');
+                recordBtn.classList.replace('text-red-600', 'text-slate-400');
+                recordBtn.classList.replace('hover:bg-red-200', 'hover:bg-slate-200');
+                recordBtn.classList.remove('recording-pulse');
+                recordBtn.innerHTML = '<i data-lucide="loader-2" class="w-12 h-12 mb-2 animate-spin"></i><span class="font-semibold text-sm">Processing</span>';
+                recordStatus.textContent = "Sending to translator...";
+                recordStatus.classList.replace('text-red-500', 'text-slate-500');
+                recordStatus.classList.remove('animate-pulse');
+                recordBtn.disabled = true; 
+                lucide.createIcons();
+            }
+        }
+
+        // --- Main Translation Logic ---
+        
+        async function processAudio(audioFile) {
+            // Update UI for loading
+            emptyState.classList.add('hidden');
+            resultsState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            startLoadingAnimation();
+
+            // Prepare Form Data exactly as the backend expects
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+
+            try {
+                // Send POST request to FastAPI backend
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server responded with a temporary issue. Please try again.`);
+                }
+
+                // 1. Handle the Audio File (Body)
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayer.src = audioUrl;
+                
+                // Automatically play the audio
+                audioPlayer.play().catch(err => console.log("Autoplay prevented by browser:", err));
+
+                // 2. Handle the Metadata (Headers)
+                const transcribed = response.headers.get('X-Transcribed-Text');
+                const translated = response.headers.get('X-Translated-Text');
+                
+                transcribedTextEl.textContent = transcribed ? decodeURIComponent(transcribed) : "No text detected.";
+                translatedTextEl.textContent = translated ? decodeURIComponent(translated) : "No translation generated.";
+
+                sttMetric.textContent = response.headers.get('X-STT-Latency') || "N/A";
+                transMetric.textContent = response.headers.get('X-Translation-Latency') || "N/A";
+                ttsMetric.textContent = response.headers.get('X-TTS-Latency') || "N/A";
+
+                // Show results
+                loadingState.classList.add('hidden');
+                resultsState.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Translation Error:", error);
+                
+                if (error.message && error.message.includes('Failed to fetch')) {
+                    loadingState.classList.add('hidden');
+                    resultsState.classList.remove('hidden');
+                    
+                    // Fallback to simulated demo data
+                    transcribedTextEl.textContent = "नमस्ते, आप कैसे हैं? (Simulated Transcript)";
+                    translatedTextEl.textContent = "Halo, apa kabar? (Simulated Translation)";
+                    sttMetric.textContent = "0.842";
+                    transMetric.textContent = "1.205";
+                    ttsMetric.textContent = "0.950";
+                    
+                    showError("<strong>Demo Mode:</strong> Browser blocked connection to <code>localhost</code> from this web preview. Displaying simulated results. To connect to your real API, download this HTML file and open it locally.", true);
+                } else {
+                    loadingState.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    showError("We couldn't connect to the translation service. Please make sure the backend server is running on localhost:8000.");
+                }
+            } finally {
+                // Reset button state
+                stopLoadingAnimation();
+                recordBtn.disabled = false;
+                recordBtn.classList.replace('bg-slate-100', 'bg-indigo-100');
+                recordBtn.classList.replace('text-slate-400', 'text-indigo-600');
+                recordBtn.classList.replace('hover:bg-slate-200', 'hover:bg-indigo-200');
+                recordBtn.innerHTML = '<i data-lucide="mic" class="w-12 h-12 mb-2"></i><span class="font-semibold text-sm">Record</span>';
+                recordStatus.textContent = "Click to start recording";
+                lucide.createIcons();
+            }
+        }
+
+    </script>
+</body>
+</html>
