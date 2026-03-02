@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voice Bridge: Hindi & Indonesian Translator</title>
+    <!-- Logo for the app -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons for visual elements -->
@@ -186,7 +190,17 @@
         lucide.createIcons();
 
         // --- Configuration ---
-        const BACKEND_URL = 'http://localhost:8000/translate-audio'; 
+        // Automatically switch backend URL based on where the frontend is hosted
+        // const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        // // IMPORTANT: Replace the URL below with your actual deployed FastAPI server URL
+        // const PRODUCTION_BACKEND_URL = 'https://voice-bridge-ikn2a.ondigitalocean.app/'; 
+        
+        // const BACKEND_URL = isLocalhost 
+        //     ? 'http://localhost:8000/translate-audio' 
+        //     : `${PRODUCTION_BACKEND_URL}/translate-audio`;
+
+        const BACKEND_URL = 'http://voice-bridge-ikn2a.ondigitalocean.app/translate-audio';
 
         // --- DOM Elements ---
         const recordBtn = document.getElementById('recordBtn');
@@ -404,6 +418,16 @@
             }
         }
 
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered!', reg))
+                    .catch(err => console.error('Service Worker failed!', err));
+            });
+        }
     </script>
 </body>
 </html>
