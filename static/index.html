@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voice Bridge: Hindi & Indonesian Translator</title>
+    <!-- Environment Variables -->
+    <script src="env.js"></script>
     <!-- Logo for the app -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#4CAF50">
@@ -190,18 +192,12 @@
         lucide.createIcons();
 
         // --- Configuration ---
-        // Automatically switch backend URL based on where the frontend is hosted
-        // const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
-        // // IMPORTANT: Replace the URL below with your actual deployed FastAPI server URL
-        // const PRODUCTION_BACKEND_URL = 'https://voice-bridge-ikn2a.ondigitalocean.app/'; 
-        
-        // const BACKEND_URL = isLocalhost 
-        //     ? 'http://localhost:8000/translate-audio' 
-        //     : `${PRODUCTION_BACKEND_URL}/translate-audio`;
-
-        const BACKEND_URL = 'http://voice-bridge-ikn2a.ondigitalocean.app/translate-audio';
-
+        // Retrieve backend URL from the globally injected ENV object (from env.js)
+        // Fallback to localhost if env.js is missing or doesn't define it
+        const BACKEND_URL = (typeof window.ENV !== 'undefined' && window.ENV.BACKEND_URL) 
+            ? window.ENV.BACKEND_URL 
+            : 'http://localhost:8000/translate-audio';
+        console.log("Using Backend URL:", BACKEND_URL);
         // --- DOM Elements ---
         const recordBtn = document.getElementById('recordBtn');
         const recordStatus = document.getElementById('recordStatus');
